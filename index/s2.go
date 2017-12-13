@@ -10,17 +10,11 @@ import (
 	"github.com/skelterjohn/geom"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/geometry"
-	// "github.com/whosonfirst/go-whosonfirst-geojson-v2/properties/whosonfirst"	
 	"github.com/whosonfirst/go-whosonfirst-pip"
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	"github.com/whosonfirst/go-whosonfirst-spr"
 )
-
-type GeoJSONShape struct {
-	s2.Shape
-	feature geojson.Feature
-}
 
 func LoopFromPolygon(p geom.Polygon) *s2.Loop {
 
@@ -37,45 +31,27 @@ func LoopFromPolygon(p geom.Polygon) *s2.Loop {
 	return s2.LoopFromPoints(points)
 }
 
-func NewGeoJSONShapeForFeature(f geojson.Feature) (s2.Shape, error) {
+func ShapesForFeature(f geojson.Feature) ([]s2.Shape, error) {
 
-	var sh s2.Shape
+	var sh []s2.Shape
 	var err error
 
 	switch geometry.Type(f) {
 
 	case "Polygon":
-		sh, err = NewGeoJSONShapeForPolygonFeature(f)
+		sh, err = ShapesForPolygonFeature(f)
+	case "MultiPolygon":
+		sh, err = ShapesForPolygonFeature(f)
+	case "Point":
+		err = errors.New("Unsupported geometry type")
 	default:
-		err = errors.New("Unsupport geometry type")
+		err = errors.New("Unsupported geometry type")
 	}
 
 	return sh, err
 }
 
-/*
-func NewGeoJSONShapeForPointFeature(f geojson.Feature) (s2.Shape, error) {
-
-	// what to do if not WOF???
-
-	centroid, err := whosonfirst.Centroid(f)
-
-	if err != nil {
-		return nil, err
-	}
-
-	coord := centroid.Coord()
-
-	ll := s2.LatLngFromDegrees(coord.Y, coord.X)
-	pt := s2.PointFromLatLng(ll)
-
-	cap := s2.CapFromPoint(pt)
-	
-	return cap, nil
-}
-*/
-
-func NewGeoJSONShapeForPolygonFeature(f geojson.Feature) (s2.Shape, error) {
+func ShapesForPolygonFeature(f geojson.Feature) ([]s2.Shape, error) {
 
 	polys, err := f.Polygons()
 
@@ -83,9 +59,11 @@ func NewGeoJSONShapeForPolygonFeature(f geojson.Feature) (s2.Shape, error) {
 		return nil, err
 	}
 
-	loops := make([]*s2.Loop, 0)
+	shapes := make([]s2.Shape, 0)
 
 	for _, p := range polys {
+
+		loops := make([]*s2.Loop, 0)
 
 		ext_ring := p.ExteriorRing()
 		ext_loop := LoopFromPolygon(ext_ring)
@@ -106,23 +84,27 @@ func NewGeoJSONShapeForPolygonFeature(f geojson.Feature) (s2.Shape, error) {
 
 			loops = append(loops, int_loop)
 		}
+
+		sh := s2.PolygonFromLoops(loops)
+		shapes = append(shapes, sh)
 	}
 
-	sh := s2.PolygonFromLoops(loops)
-	return sh, nil
+	return shapes, nil
 }
 
 type S2Index struct {
 	Index
 	shapeindex *s2.ShapeIndex
+	cache      cache.Cache
 }
 
-func NewS2Index() (Index, error) {
+func NewS2Index(c cache.Cache) (Index, error) {
 
 	si := s2.NewShapeIndex()
 
 	i := S2Index{
 		shapeindex: si,
+		cache:      c,
 	}
 
 	return &i, nil
@@ -130,13 +112,19 @@ func NewS2Index() (Index, error) {
 
 func (i *S2Index) IndexFeature(f geojson.Feature) error {
 
-	sh, err := NewGeoJSONShapeForFeature(f)
+	shapes, err := ShapesForFeature(f)
 
 	if err != nil {
 		return err
 	}
 
-	i.shapeindex.Add(sh)
+	// question: where do I assign/append the WOF ID for the polygon/shape
+	// being added to the index? (20171212/thisisaaronland)
+
+	for _, sh := range shapes {
+		i.shapeindex.Add(sh)
+	}
+
 	return nil
 }
 
