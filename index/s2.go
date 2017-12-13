@@ -125,11 +125,25 @@ func (i *S2Index) IndexFeature(f geojson.Feature) error {
 		i.shapeindex.Add(sh)
 	}
 
+	str_id := f.Id()
+
+	fc, err := cache.NewFeatureCache(f)
+
+	if err != nil {
+		return err
+	}
+
+	err = i.cache.Set(str_id, fc)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (i *S2Index) Cache() cache.Cache {
-	return nil
+	return i.cache
 }
 
 func (i *S2Index) GetIntersectsByCoord(geom.Coord, filter.Filter) (spr.StandardPlacesResults, error) {
@@ -143,38 +157,3 @@ func (i *S2Index) GetCandidatesByCoord(geom.Coord) (*pip.GeoJSONFeatureCollectio
 func (i *S2Index) GetIntersectsByPath(geom.Path, filter.Filter) ([]spr.StandardPlacesResults, error) {
 	return nil, errors.New("Please write me")
 }
-
-/*
-func (sh *GeoJSONShape) NumEdges() int {
-     return 0			// please write m
-}
-
-func (sh *GeoJSONShape) Edge(i int) s2.Edge {
-     return nil		       // please write me
-}
-
-func (sh *GeoJSONShape) HasInterior() bool {
-     return false		// please write me
-}
-
-func (sh *GeoJSONShape) ReferencePoint() s2.ReferencePoint {
-     return nil			// please write me
-}
-
-func (sh *GeoJSONShape) NumChains() int {
-     return 0			// please write me
-}
-
-func (sh *GeoJSONShape) Chain(chainID int) s2.Chain {
-     return nil			// please write me
-}
-
-func (sh *GeoJSONShape) ChainEdge(chainID, offset int) s2.Edge {
-     return nil			// please write me
-}
-
-func (sh *GeoJSONShape) ChainPosition(edgeID int) ChainPosition {
-     return nil			// please write me
-}
-
-*/
