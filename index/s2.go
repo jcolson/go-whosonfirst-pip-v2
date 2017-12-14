@@ -54,14 +54,16 @@ func ShapesForFeature(f geojson.Feature) ([]s2.Shape, error) {
 	t := geometry.Type(f)
 	// log.Println("TYPE", t)
 
+	is_ca := f.Id() == "85688637"
+	
 	switch t {
 
 	case "Polygon":
-		sh, err = ShapesForPolygonFeature(f)
+		sh, err = ShapesForPolygonFeature(f, is_ca)
 	case "MultiPolygon":
-		sh, err = ShapesForMultiPolygonFeature(f)
+		sh, err = ShapesForMultiPolygonFeature(f, is_ca)
 	case "Point":
-	     	// I don't understand why this since the docs all say that a ShapeIndex should be
+		// I don't understand why this since the docs all say that a ShapeIndex should be
 		// able to accomodate a Point but the (golang) Point thing doesn't seem to implement
 		// the Shape interface in its entirety... (20171214/thisisaaronland)
 		err = errors.New("Unsupported geometry type")
@@ -78,7 +80,7 @@ func ShapesForFeature(f geojson.Feature) ([]s2.Shape, error) {
 // each of which has ExteriorRing() and InteriorRings() methods
 // (20171214/thisisaaronland)
 
-func ShapesForMultiPolygonFeature(f geojson.Feature) ([]s2.Shape, error) {
+func ShapesForMultiPolygonFeature(f geojson.Feature, is_ca bool) ([]s2.Shape, error) {
 
 	polys, err := f.Polygons()
 
@@ -86,10 +88,10 @@ func ShapesForMultiPolygonFeature(f geojson.Feature) ([]s2.Shape, error) {
 		return nil, err
 	}
 
-	return ShapesForPolygons(polys)
+	return ShapesForPolygons(polys, is_ca)
 }
 
-func ShapesForPolygonFeature(f geojson.Feature) ([]s2.Shape, error) {
+func ShapesForPolygonFeature(f geojson.Feature, is_ca bool) ([]s2.Shape, error) {
 
 	polys, err := f.Polygons()
 
@@ -97,7 +99,7 @@ func ShapesForPolygonFeature(f geojson.Feature) ([]s2.Shape, error) {
 		return nil, err
 	}
 
-	return ShapesForPolygons(polys)
+	return ShapesForPolygons(polys, is_ca)
 }
 
 /*
@@ -130,11 +132,11 @@ The polygon has a CW winding if the quantity in 1 is positive and a CCW winding 
 
 */
 
-func ShapesForPolygons(polys []geojson.Polygon) ([]s2.Shape, error) {
+func ShapesForPolygons(polys []geojson.Polygon, is_ca bool) ([]s2.Shape, error) {
 
 	shapes := make([]s2.Shape, 0)
 
-	for _, p := range polys {
+	for i, p := range polys {
 
 		loops := make([]*s2.Loop, 0)
 
@@ -168,6 +170,17 @@ func ShapesForPolygons(polys []geojson.Polygon) ([]s2.Shape, error) {
 		}
 
 		sh := s2.PolygonFromLoops(loops)
+
+		if is_ca {
+
+			ll := s2.LatLngFromDegrees(37.794906, -122.395229)
+			pt := s2.PointFromLatLng(ll)
+
+			c := sh.ContainsPoint(pt)
+
+			golog.Println("CALIFORNIA", i, pt, c)
+		}
+
 		shapes = append(shapes, sh)
 	}
 
