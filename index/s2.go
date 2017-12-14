@@ -61,6 +61,9 @@ func ShapesForFeature(f geojson.Feature) ([]s2.Shape, error) {
 	case "MultiPolygon":
 		sh, err = ShapesForMultiPolygonFeature(f)
 	case "Point":
+	     	// I don't understand why this since the docs all say that a ShapeIndex should be
+		// able to accomodate a Point but the (golang) Point thing doesn't seem to implement
+		// the Shape interface in its entirety... (20171214/thisisaaronland)
 		err = errors.New("Unsupported geometry type")
 	default:
 		err = errors.New("Unsupported geometry type")
