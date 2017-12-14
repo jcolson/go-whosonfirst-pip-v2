@@ -14,8 +14,16 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
 	"github.com/whosonfirst/go-whosonfirst-pip/filter"
 	"github.com/whosonfirst/go-whosonfirst-spr"
-	_ "log"
+	golog "log"
 )
+
+func PointFromCoord(coord geom.Coord) s2.Point {
+
+	ll := s2.LatLngFromDegrees(coord.Y, coord.X)
+	pt := s2.PointFromLatLng(ll)
+
+	return pt
+}
 
 func LoopFromPolygon(p geom.Polygon) *s2.Loop {
 
@@ -26,8 +34,7 @@ func LoopFromPolygon(p geom.Polygon) *s2.Loop {
 
 	for i, coord := range vertices {
 
-		ll := s2.LatLngFromDegrees(coord.Y, coord.X)
-		pt := s2.PointFromLatLng(ll)
+		pt := PointFromCoord(coord)
 
 		// see notes in ShapesForPolygons() below
 
@@ -61,6 +68,12 @@ func ShapesForFeature(f geojson.Feature) ([]s2.Shape, error) {
 
 	return sh, err
 }
+
+// this is a separate function mostly just for clarity now and might just
+// be merged with ShapesForPolygonFeature - the salient point is that the
+// geojson.Polygons() method returns a flat list of geojson.Polygon thingies
+// each of which has ExteriorRing() and InteriorRings() methods
+// (20171214/thisisaaronland)
 
 func ShapesForMultiPolygonFeature(f geojson.Feature) ([]s2.Shape, error) {
 
@@ -127,6 +140,9 @@ func ShapesForPolygons(polys []geojson.Polygon) ([]s2.Shape, error) {
 
 		// ext_order := ext_ring.WindingOrder()
 
+		// wuh... ?!
+		// https://godoc.org/github.com/golang/geo/s2#Loop.IsValid
+
 		if !ext_loop.IsValid() {
 			return nil, errors.New("Invalid exterior ring")
 		}
@@ -138,6 +154,8 @@ func ShapesForPolygons(polys []geojson.Polygon) ([]s2.Shape, error) {
 			// int_order := ext_ring.WindingOrder()
 
 			int_loop := LoopFromPolygon(int_ring)
+
+			// wuh... ?!
 
 			if !int_loop.IsValid() {
 				return nil, errors.New("Invalid interior ring")
@@ -176,7 +194,14 @@ func (i *S2Index) IndexFeature(f geojson.Feature) error {
 	shapes, err := ShapesForFeature(f)
 
 	if err != nil {
-		return err
+
+		// we probably want to return an error here but while we're figuring out
+		// how it all works we are just being chatty about it...
+		// (20171214/thisisaaronland)
+		// return err
+
+		golog.Printf("SKIP %s (%s) because %s\n", f.Id(), f.Name(), err)
+		return nil
 	}
 
 	// question: where do I assign/append the WOF ID for the polygon/shape
@@ -207,14 +232,50 @@ func (i *S2Index) Cache() cache.Cache {
 	return i.cache
 }
 
-func (i *S2Index) GetIntersectsByCoord(geom.Coord, filter.Filter) (spr.StandardPlacesResults, error) {
+/*
+
+I have no idea if I am doing the right thing here or why this isn't working - like
+I am indexing things incorrectly (above) or do I want to be calling something other
+than LocatePoint() or even using a ShapeIndexIterator at all? Either way assuming
+we've indexed California correctly we should get a match for 37.794906,-122.395229
+
+https://godoc.org/github.com/golang/geo/s2#ShapeIndexIterator
+
+https://whosonfirst.mapzen.com/spelunker/id/420561633	<-- super bowl city
+https://whosonfirst.mapzen.com/spelunker/id/85688637	<-- california
+
+./bin/wof-pip -lru-cache -mode sqlite -latitude 37.794906 -longitude -122.395229 ~/Downloads/region-20171212.db
+2017/12/14 09:22:03 SKIP 85667653 (Malanje) because Invalid interior ring
+2017/12/14 09:22:05 SKIP 85668081 (Ciudad de Buenos Aires) because Invalid interior ring
+2017/12/14 09:22:05 SKIP 85668095 (Tavush) because Invalid interior ring
+2017/12/14 09:22:05 SKIP 85668215 (Goranboy) because Invalid interior ring
+...time passes and California is not in this list...
+2017/12/14 09:24:26 SKIP 85688607 (New Jersey) because Invalid interior ring
+2017/12/14 09:24:31 SKIP 85688805 (Kiev City) because Invalid interior ring
+2017/12/14 09:24:32 SKIP 85688825 (Chernihiv) because Invalid interior ring
+2017/12/14 09:24:33 SKIP 85688877 (Biliaivskyi) because Invalid interior ring
+2017/12/14 09:24:39 BY COORD {-122.395229 37.794906} (-0.423359865649069688764428, -0.667231204056549009884236, 0.612836800862064379202820) false
+
+(20171214/thisisaaronland)
+
+*/
+
+func (i *S2Index) GetIntersectsByCoord(c geom.Coord, f filter.Filter) (spr.StandardPlacesResults, error) {
+
+	pt := PointFromCoord(c)
+
+	iter := s2.NewShapeIndexIterator(i.shapeindex)
+	ok := iter.LocatePoint(pt)
+
+	golog.Println("BY COORD", c, pt, ok)
+
 	return nil, errors.New("Please write me")
 }
 
-func (i *S2Index) GetCandidatesByCoord(geom.Coord) (*pip.GeoJSONFeatureCollection, error) {
+func (i *S2Index) GetCandidatesByCoord(c geom.Coord) (*pip.GeoJSONFeatureCollection, error) {
 	return nil, errors.New("Please write me")
 }
 
-func (i *S2Index) GetIntersectsByPath(geom.Path, filter.Filter) ([]spr.StandardPlacesResults, error) {
+func (i *S2Index) GetIntersectsByPath(p geom.Path, f filter.Filter) ([]spr.StandardPlacesResults, error) {
 	return nil, errors.New("Please write me")
 }
