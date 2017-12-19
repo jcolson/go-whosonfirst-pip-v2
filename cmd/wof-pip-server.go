@@ -11,8 +11,10 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/http"
 	"io"
+	"io/ioutil"
 	gohttp "net/http"
 	"os"
+	"os/signal"
 	"runtime"
 	godebug "runtime/debug"
 	"strings"
@@ -52,7 +54,10 @@ func main() {
 	// please replace with a more extinsible -format flag
 	// (20170927/thisisaaronland)
 
-	var allow_geojson = flag.Bool("allow-geojson", false, "")
+	var allow_geojson = flag.Bool("allow-geojson", false, "Allow users to request GeoJSON FeatureCollection formatted responses. This flag will be replaced with a more generic -format flag in the future.")
+	var allow_extras = flag.Bool("allow-extras", false, "Allow users to pass an ?extras= query parameter and append those properties to the output. This feature is considered EXPERIMENTAL. It will add a non-zero amount of indexing time on start-up and not very-well understood amount of response time.")
+
+	var extras_db = flag.String("extras-db", "", "The path to a SQLite database to use for storing extras-related information. If empty a temporary database will be created.")
 
 	var api_key = flag.String("mapzen-api-key", "mapzen-xxxxxxx", "")
 
@@ -128,6 +133,48 @@ func main() {
 
 	if err != nil {
 		logger.Fatal("failed to create indexer options because %s", err)
+	}
+
+	if *allow_extras {
+
+		if *extras_db == "" {
+
+			tmpfile, err := ioutil.TempFile("", "pip-extras")
+
+			if err != nil {
+				logger.Fatal("Failed to create temp file, because %s", err)
+			}
+
+			tmpfile.Close()
+			tmpnam := tmpfile.Name()
+
+			logger.Status("create temporary extras database '%s'", tmpnam)
+			*extras_db = tmpnam
+
+			cleanup := func() {
+
+				logger.Status("remove temporary extras database '%s'", tmpnam)
+
+				err := os.Remove(tmpnam)
+
+				if err != nil {
+					logger.Warning("failed to remove %s, because %s", tmpnam, err)
+				}
+			}
+
+			defer cleanup()
+
+			signal_ch := make(chan os.Signal, 1)
+			signal.Notify(signal_ch, os.Interrupt)
+
+			go func() {
+				<-signal_ch
+				cleanup()
+			}()
+		}
+
+		indexer_opts.IndexExtras = *allow_extras
+		indexer_opts.ExtrasDB = *extras_db
 	}
 
 	indexer_opts.IndexMode = *mode
@@ -207,6 +254,8 @@ func main() {
 
 	intersects_opts := http.NewDefaultIntersectsHandlerOptions()
 	intersects_opts.AllowGeoJSON = *allow_geojson
+	intersects_opts.AllowExtras = *allow_extras
+	intersects_opts.ExtrasDB = *extras_db
 
 	intersects_handler, err := http.IntersectsHandler(appindex, indexer, intersects_opts)
 
