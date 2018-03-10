@@ -55,7 +55,7 @@ func ShapesForFeature(f geojson.Feature) ([]s2.Shape, error) {
 	// log.Println("TYPE", t)
 
 	is_ca := f.Id() == "85688637"
-	
+
 	switch t {
 
 	case "Polygon":

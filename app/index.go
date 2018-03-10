@@ -1,23 +1,38 @@
 package app
 
 import (
+	"errors"
+	"flag"
 	"github.com/whosonfirst/go-whosonfirst-pip/cache"
+	"github.com/whosonfirst/go-whosonfirst-pip/flags"
 	"github.com/whosonfirst/go-whosonfirst-pip/index"
 )
 
-type ApplicationIndexOptions struct {
-}
+func NewApplicationIndex(fl *flag.FlagSet, appcache cache.Cache) (index.Index, error) {
 
-func DefaultApplicationIndexOptions() (ApplicationIndexOptions, error) {
+	pip_index, err := flags.StringVar(fl, "index")
 
-	opts := ApplicationIndexOptions{}
+	if err != nil {
+		return nil, err
+	}
 
-	return opts, nil
-}
+	switch pip_index {
+	case "rtree":
+		return index.NewRTreeIndex(appcache)
+	case "spatialite":
 
-func ApplicationIndex(c cache.Cache) (index.Index, error) {
+		db, err := NewSpatialiteDB(fl)
 
-	return index.NewS2Index(c)
+		if err != nil {
+			return nil, err
+		}
 
-	// return index.NewRTreeIndex(c)
+		return index.NewSpatialiteIndex(db, appcache)
+
+	case "s2":
+		return index.NewS2Index(appcache)
+	default:
+		return nil, errors.New("Invalid engine")
+	}
+
 }
