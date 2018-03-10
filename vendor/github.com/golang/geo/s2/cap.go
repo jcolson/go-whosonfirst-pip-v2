@@ -1,18 +1,16 @@
-/*
-Copyright 2014 Google Inc. All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
+// Copyright 2014 Google Inc. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 
 package s2
 
@@ -504,4 +502,18 @@ func (c Cap) encode(e *encoder) {
 	e.writeFloat64(c.center.Y)
 	e.writeFloat64(c.center.Z)
 	e.writeFloat64(float64(c.radius))
+}
+
+// Decode decodes the Cap.
+func (c *Cap) Decode(r io.Reader) error {
+	d := &decoder{r: asByteReader(r)}
+	c.decode(d)
+	return d.err
+}
+
+func (c *Cap) decode(d *decoder) {
+	c.center.X = d.readFloat64()
+	c.center.Y = d.readFloat64()
+	c.center.Z = d.readFloat64()
+	c.radius = s1.ChordAngle(d.readFloat64())
 }
