@@ -53,10 +53,10 @@ To run as an HTTP based point-in-polygon (PIP) server indexing Who's On First do
 
 _You can index any valid "mode" as defined by the [go-whosonfirst-index](https://github.com/whosonfirst/go-whosonfirst-index#modes) package._
 
-Your PIP server will now be answering requests on `localhost:8000`. For example:
+Your PIP server will now be answering requests on `localhost:8080`. For example:
 
 ```
-curl -s 'http://localhost:8000/?latitude=37.794906&longitude=-122.395229&placetype=microhood' | python -mjson.tool
+curl -s 'http://localhost:8080/?latitude=37.794906&longitude=-122.395229&placetype=microhood' | python -mjson.tool
 {
     "places": [
         {
