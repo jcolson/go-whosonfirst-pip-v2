@@ -1,5 +1,15 @@
 # go-whosonfirst-pip-v2
 
+Note:  This branch of go-whosonfirst-pip-v2 bundles https://dist.whosonfirst.org/sqlite/whosonfirst-data-latest.db.bz2 embedded in the docker image.  How to run with spatialite is down in the docker section.
+
+Startup time takes FOREVER due to indexing unfortunately, and chews up a TON of RAM ... there may be a way to index the data once and save that to the container ... will look at some point in the future if it makes sense.
+
+```16:11:33.886992 [wof-pip-server] STATUS finished indexing in 17m30.949944783s```
+
+In the meantime this is an [alternative](https://github.com/jcolson/geoloc).
+
+---
+
 An in-memory point-in-polygon (reverse geocoding) package for GeoJSON data, principally Who's On First data.
 
 _This package supersedes the [go-whosonfirst-pip](https://github.com/whosonfirst/go-whosonfirst-pip) package which is no longer maintained._
@@ -1001,6 +1011,36 @@ To start the image you do the usual `docker run` dance passing one or more
 If your `WOF_MODE` environment variable is `sqlite` then you need to also set a
 `SQLITE_DATABASES` environment variable containing a comma-separated list of
 (WOF) SQLite database names (including the trailing `.db`) to fetch and index.
+
+```sh
+docker run -it \
+    --name whosonfirst-pip \
+    -p 8080:8080 \
+    -e WOF_HOST='0.0.0.0' \
+    -e WOF_ENABLE_EXTRAS='true' \
+    -e WOF_INDEX='spatialite' \
+    -e WOF_CACHE='spatialite' \
+    -e WOF_MODE='spatialite' \
+    -e SPATIALITE_DATABASE='whosonfirst-data-latest.db' \
+    sncrpc/go-whosonfirst-pip-v2
+```
+
+```sh
+docker run -it \
+    --name whosonfirst-pip \
+    -p 8080:8080 \
+    -e WOF_HOST='0.0.0.0' \
+    -e WOF_ENABLE_EXTRAS='true' \
+    -e WOF_MODE='sqlite' \
+    -e SQLITE_DATABASES='whosonfirst-data-latest.db' \
+    sncrpc/go-whosonfirst-pip-v2
+```
+
+running bare
+```
+/bin/wof-pip-server -index=spatialite -mode=spatialite -cache=spatialite -host=0.0.0.0 -spatialite-dsn=/usr/local/data/whosonfirst-data-latest-index.db
+
+```
 
 ```
 > docker run -it -p 6161:8080 -e WOF_HOST='0.0.0.0' -e WOF_ENABLE_EXTRAS='true' -e WOF_MODE='sqlite' -e SQLITE_DATABASES='whosonfirst-data-constituency-ca-latest.db' wof-pip-server

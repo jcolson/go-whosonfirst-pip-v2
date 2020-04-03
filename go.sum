@@ -55,6 +55,7 @@ github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/sergi/go-diff v1.0.0/go.mod h1:0CfEIISq7TuYL3j771MWULgwwjU+GofnZX9QAmXWZgo=
+github.com/shaxbee/go-spatialite v0.0.0-20180425212100-9b4c81899e0e h1:61v08FVpeA7foksKH9uEygA+q4YlGYAZCTsqixaH9rU=
 github.com/shaxbee/go-spatialite v0.0.0-20180425212100-9b4c81899e0e/go.mod h1:tRDdwai9gBsMVwqexZx2+O5F9QY49MxJFo1zlI/MdkU=
 github.com/sirupsen/logrus v1.4.1/go.mod h1:ni0Sbl8bgC9z8RoU9G6nDWqqs/fq4eDPysMBDgk/93Q=
 github.com/skelterjohn/geom v0.0.0-20180103142417-96f3e8a219c5 h1:qQF/q/+xaKD4CAVz3zfuvpij8U4ihSGIhHfOROI4NFc=

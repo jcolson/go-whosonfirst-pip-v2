@@ -50,23 +50,16 @@ then
 	
     if [ ! -f ${LOCAL} ]
     then
-	echo "fetch ${REMOTE}.bz2 as ${LOCAL}.bz2"
-	
-	${CURL} -o ${LOCAL}.bz2 ${REMOTE}.bz2
-	
-	if [ $? -ne 0 ]
-	then
-	    echo "failed to fetch remote source ${REMOTE}.bz2"
-	    exit 0
-	fi
-	
-	${BUNZIP2} ${LOCAL}.bz2
-	
-	if [ $? -ne 0 ]
-	then
-	    echo "failed to uncompress local source"
-	    exit 0
-	fi
+        echo "fetch ${REMOTE}.bz2 as ${LOCAL}.bz2"
+        
+        ${CURL} -o ${LOCAL}.bz2 ${REMOTE}.bz2
+        ${BUNZIP2} ${LOCAL}.bz2
+
+        if [ $? -ne 0 ]
+        then
+            echo "failed to fetch and uncompress remote source ${REMOTE}.bz2"
+            exit 0
+        fi
 	
     fi
     
